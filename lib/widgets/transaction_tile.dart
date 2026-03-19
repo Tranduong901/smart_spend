@@ -19,49 +19,70 @@ class TransactionTile extends StatelessWidget {
     final dateText =
         '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-      leading: CircleAvatar(child: Icon(transaction.category.icon)),
-      title: Text(transaction.note),
-      subtitle: Text('${transaction.category.label} • $dateText'),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '${transaction.isIncome ? '+' : '-'}${_formatCurrency(transaction.amount)}',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: transaction.isIncome
-                      ? Theme.of(context).colorScheme.tertiary
-                      : Theme.of(context).colorScheme.error,
-                  fontWeight: FontWeight.w600,
-                ),
+    return Consumer<ExpenseProvider>(
+      builder: (context, provider, _) {
+        // Get the category object from provider based on categoryName
+        final categories = transaction.isIncome
+            ? provider.incomeCategories
+            : provider.expenseCategories;
+        final category = categories.firstWhere(
+          (c) => c.name == transaction.categoryName,
+          orElse: () => categories.isNotEmpty
+              ? categories.first
+              : (transaction.isIncome
+                  ? provider.incomeCategories.first
+                  : provider.expenseCategories.first),
+        );
+
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          leading: CircleAvatar(
+            backgroundColor: category.color,
+            child: Icon(category.icon, color: Colors.white),
           ),
-          if (showDelete)
-            IconButton(
-              onPressed: () async {
-                try {
-                  await context.read<ExpenseProvider>().deleteTransaction(
-                        transaction.id,
-                      );
-                } catch (_) {
-                  if (!context.mounted) {
-                    return;
-                  }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content:
-                          Text('Xóa giao dịch thất bại. Vui lòng thử lại.'),
+          title: Text(transaction.title),
+          subtitle: Text('${transaction.categoryName} • $dateText'),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${transaction.isIncome ? '+' : '-'}${_formatCurrency(transaction.amount)}',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: transaction.isIncome
+                          ? Theme.of(context).colorScheme.tertiary
+                          : Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.w600,
                     ),
-                  );
-                }
-              },
-              icon: const Icon(Icons.delete_outline),
-              tooltip: 'Xóa giao dịch',
-            ),
-        ],
-      ),
+              ),
+              if (showDelete)
+                IconButton(
+                  onPressed: () async {
+                    try {
+                      await context.read<ExpenseProvider>().deleteTransaction(
+                            transaction.id,
+                          );
+                    } catch (_) {
+                      if (!context.mounted) {
+                        return;
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content:
+                              Text('Xóa giao dịch thất bại. Vui lòng thử lại.'),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: 'Xóa giao dịch',
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 

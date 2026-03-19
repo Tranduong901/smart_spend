@@ -4,7 +4,6 @@ import 'package:smart_spend/providers/expense_provider.dart';
 import 'package:smart_spend/repositories/exchange_rate_repository.dart';
 import 'package:smart_spend/widgets/balance_card.dart';
 import 'package:smart_spend/widgets/exchange_rate_card.dart';
-import 'package:smart_spend/widgets/expense_pie_chart.dart';
 import 'package:smart_spend/widgets/recent_transactions_list.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -19,6 +18,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ExchangeRateRepository();
   double? _usdToVndRate;
   String? _exchangeError;
+
+  Future<void> _editStartingBalance(BuildContext context) async {
+    final provider = context.read<ExpenseProvider>();
+    final controller = TextEditingController(
+      text: provider.startingBalance.toStringAsFixed(0),
+    );
+
+    final result = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Nhập số dư ban đầu'),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            hintText: 'Ví dụ: 15000000',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Huỷ'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = double.tryParse(controller.text.trim());
+              Navigator.pop(dialogContext, value);
+            },
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted || result == null || result < 0) {
+      return;
+    }
+
+    await provider.setStartingBalance(result);
+  }
 
   @override
   void initState() {
@@ -73,43 +112,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             errorMessage: _exchangeError,
             onRefresh: _loadExchangeRate,
           ),
-          if (expenseProvider.syncErrorMessage != null) ...[
-            const SizedBox(height: 8),
-            Card(
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.wifi_off,
-                      color: Theme.of(context).colorScheme.onErrorContainer,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        expenseProvider.syncErrorMessage!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onErrorContainer,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: expenseProvider.syncHiveToCloud,
-                      icon: Icon(
-                        Icons.sync,
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
           const SizedBox(height: 8),
-          BalanceCard(totalBalance: expenseProvider.calculateTotalBalance()),
-          const SizedBox(height: 16),
-          ExpensePieChart(transactions: transactions),
+          BalanceCard(
+            totalBalance: expenseProvider.calculateTotalBalance(),
+            startingBalance: expenseProvider.startingBalance,
+            onEditStartingBalance: () => _editStartingBalance(context),
+          ),
           const SizedBox(height: 16),
           RecentTransactionsList(
             transactions: recentTransactions.take(5).toList(),

@@ -8,7 +8,11 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          body: BalanceCard(totalBalance: 15000000),
+          body: BalanceCard(
+            totalBalance: 15000000,
+            startingBalance: 10000000,
+            onEditStartingBalance: _noop,
+          ),
         ),
       ),
     );
@@ -16,3 +20,5 @@ void main() {
     expect(find.text('Số dư tổng'), findsOneWidget);
   });
 }
+
+void _noop() {}

@@ -30,16 +30,18 @@ class Transaction {
   const Transaction({
     required this.id,
     required this.amount,
-    required this.category,
+    required this.categoryName,
     required this.date,
     required this.note,
+    required this.title,
     this.imagePath,
     this.isIncome = false,
   });
 
   final String id;
+  final String title;
   final double amount;
-  final ExpenseCategory category;
+  final String categoryName;
   final DateTime date;
   final String note;
   final String? imagePath;
@@ -47,8 +49,9 @@ class Transaction {
 
   Transaction copyWith({
     String? id,
+    String? title,
     double? amount,
-    ExpenseCategory? category,
+    String? categoryName,
     DateTime? date,
     String? note,
     String? imagePath,
@@ -56,8 +59,9 @@ class Transaction {
   }) {
     return Transaction(
       id: id ?? this.id,
+      title: title ?? this.title,
       amount: amount ?? this.amount,
-      category: category ?? this.category,
+      categoryName: categoryName ?? this.categoryName,
       date: date ?? this.date,
       note: note ?? this.note,
       imagePath: imagePath ?? this.imagePath,
