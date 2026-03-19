@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_spend/providers/expense_provider.dart';
 import 'package:smart_spend/widgets/category_breakdown.dart';
+import 'package:smart_spend/widgets/dashboard_overview.dart';
 import 'package:smart_spend/widgets/expense_pie_chart.dart';
+import 'package:smart_spend/widgets/trend_chart.dart';
 
 class AnalysisScreen extends StatelessWidget {
   const AnalysisScreen({super.key});
@@ -46,8 +48,36 @@ class AnalysisScreen extends StatelessWidget {
             changePercent: changePercent,
           ),
           const SizedBox(height: 16),
+          Text(
+            'Dashboard tổng quan',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          DashboardOverviewWidget(
+            transactions: transactions,
+            month: now.month,
+            year: now.year,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Xu hướng thu/chi',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          TrendChartWidget(transactions: transactions),
+          const SizedBox(height: 16),
+          Text(
+            'Phân bố chi tiêu tháng này',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
           ExpensePieChart(transactions: currentMonthTransactions),
           const SizedBox(height: 16),
+          Text(
+            'Chi tiết theo danh mục',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
           CategoryBreakdown(transactions: currentMonthTransactions),
         ],
       ),
