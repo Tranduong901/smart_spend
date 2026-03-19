@@ -58,21 +58,13 @@ class SmartSpendApp extends StatefulWidget {
 
 class _SmartSpendAppState extends State<SmartSpendApp> {
   int _currentIndex = 0;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
-  void _showAddTransactionDialog() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (_, controller) => SingleChildScrollView(
-          controller: controller,
-          child: const Padding(
-            padding: EdgeInsets.only(top: 16),
-            child: AddTransactionScreen(),
-          ),
+  void _openAddTransactionPage() {
+    _navigatorKey.currentState?.push(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(
+          body: AddTransactionScreen(),
         ),
       ),
     );
@@ -86,6 +78,7 @@ class _SmartSpendAppState extends State<SmartSpendApp> {
     ];
 
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Smart Spend',
       localizationsDelegates: const [
@@ -111,7 +104,7 @@ class _SmartSpendAppState extends State<SmartSpendApp> {
       home: Scaffold(
         body: IndexedStack(index: _currentIndex, children: screens),
         floatingActionButton: FloatingActionButton(
-          onPressed: _showAddTransactionDialog,
+          onPressed: _openAddTransactionPage,
           tooltip: 'Thêm giao dịch',
           child: const Icon(Icons.add),
         ),
