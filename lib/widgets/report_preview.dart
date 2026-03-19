@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
-import 'dart:html' as html;
 import '../models/transaction.dart';
+import '../services/file_export_helper.dart';
 import '../services/report_generator.dart';
 
 /// Widget for previewing and exporting reports
 class ReportPreviewWidget extends StatefulWidget {
   final List<Transaction> transactions;
+  final List<Transaction> allTransactions;
   final int month;
   final int year;
   final double totalIncome;
@@ -16,6 +17,7 @@ class ReportPreviewWidget extends StatefulWidget {
   const ReportPreviewWidget({
     Key? key,
     required this.transactions,
+    required this.allTransactions,
     required this.month,
     required this.year,
     required this.totalIncome,
@@ -29,98 +31,176 @@ class ReportPreviewWidget extends StatefulWidget {
 
 class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
   bool _isLoading = false;
+  bool _exportAllMonths = false;
+
+  List<Transaction> _getEffectiveExportTransactions() {
+    final selected =
+        _exportAllMonths ? widget.allTransactions : widget.transactions;
+    if (selected.isNotEmpty) {
+      return selected;
+    }
+
+    return widget.allTransactions;
+  }
+
+  bool _isUsingFallbackAllTransactions() {
+    return !_exportAllMonths &&
+        widget.transactions.isEmpty &&
+        widget.allTransactions.isNotEmpty;
+  }
+
+  double _incomeOf(List<Transaction> transactions) {
+    return transactions
+        .where((tx) => tx.isIncome)
+        .fold<double>(0, (sum, tx) => sum + tx.amount);
+  }
+
+  double _expenseOf(List<Transaction> transactions) {
+    return transactions
+        .where((tx) => !tx.isIncome)
+        .fold<double>(0, (sum, tx) => sum + tx.amount);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title
-            Text(
-              'Báo Cáo Tài Chính',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
+    final hasCurrentMonth = widget.transactions.isNotEmpty;
+    final exportTransactions = _getEffectiveExportTransactions();
+    final usingFallback = _isUsingFallbackAllTransactions();
+    final exportIncome = _incomeOf(exportTransactions);
+    final exportExpense = _expenseOf(exportTransactions);
+    final exportBalance = exportIncome - exportExpense;
+
+    return Padding(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title
+          Text(
+            'Báo Cáo Tài Chính',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          if (!_exportAllMonths && !usingFallback)
             Text(
               'Tháng ${widget.month}/${widget.year}',
               style: TextStyle(color: Colors.grey[600]),
+            )
+          else
+            Text(
+              'Tất cả các tháng',
+              style: TextStyle(
+                  color: Colors.blue[600], fontWeight: FontWeight.w500),
             ),
-            SizedBox(height: 24),
+          SizedBox(height: 24),
 
-            // Summary section
-            _SummaryCard(
-              month: widget.month,
-              year: widget.year,
-              totalIncome: widget.totalIncome,
-              totalExpense: widget.totalExpense,
-              balance: widget.balance,
-            ),
-            SizedBox(height: 24),
-
-            // Export buttons
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Xuất Dữ Liệu',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _exportPdf,
-                  icon: Icon(Icons.picture_as_pdf),
-                  label: Text('Xuất PDF'),
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: Colors.red.shade600,
-                    disabledBackgroundColor: Colors.grey.shade300,
-                  ),
-                ),
-                SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _exportCsv,
-                  icon: Icon(Icons.table_chart),
-                  label: Text('Xuất CSV'),
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: Colors.green.shade600,
-                    disabledBackgroundColor: Colors.grey.shade300,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 24),
-
-            // Recent transactions preview
-            if (widget.transactions.isNotEmpty)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          // Warning if no transactions in current month
+          if (!hasCurrentMonth)
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade100,
+                border: Border.all(color: Colors.amber.shade400),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
                 children: [
-                  Text(
-                    'Các Giao Dịch Gần Đây',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Icon(Icons.warning_outlined, color: Colors.amber.shade900),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Tháng này chưa có giao dịch. Bạn có thể xuất dữ liệu từ tất cả các tháng.',
+                      style: TextStyle(color: Colors.amber.shade900),
+                    ),
                   ),
-                  SizedBox(height: 12),
-                  _buildTransactionList(),
                 ],
               ),
-          ],
-        ),
+            ),
+
+          if (!hasCurrentMonth) SizedBox(height: 16),
+
+          // Summary section (show what will be exported)
+          _SummaryCard(
+            month: widget.month,
+            year: widget.year,
+            totalIncome: exportIncome,
+            totalExpense: exportExpense,
+            balance: exportBalance,
+            showAllMonths: _exportAllMonths || usingFallback,
+          ),
+          SizedBox(height: 16),
+
+          // Toggle for exporting all months
+          if (!hasCurrentMonth)
+            CheckboxListTile(
+              value: _exportAllMonths,
+              onChanged: (value) {
+                setState(() => _exportAllMonths = value ?? false);
+              },
+              title: Text('Xuất dữ liệu từ tất cả các tháng'),
+              subtitle: Text('${widget.allTransactions.length} giao dịch'),
+            ),
+
+          // Export buttons
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Xuất Dữ Liệu',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _isLoading ? null : _exportPdf,
+                icon: Icon(Icons.picture_as_pdf),
+                label: Text('Xuất PDF'),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  backgroundColor: Colors.red.shade600,
+                  disabledBackgroundColor: Colors.grey.shade300,
+                ),
+              ),
+              SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: _isLoading ? null : _exportCsv,
+                icon: Icon(Icons.table_chart),
+                label: Text('Xuất CSV'),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  backgroundColor: Colors.green.shade600,
+                  disabledBackgroundColor: Colors.grey.shade300,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 24),
+
+          // Recent transactions preview
+          if (exportTransactions.isNotEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Các Giao Dịch Gần Đây',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 12),
+                _buildTransactionList(exportTransactions),
+              ],
+            ),
+        ],
       ),
     );
   }
 
-  Widget _buildTransactionList() {
-    final txList = widget.transactions.take(5).toList();
+  Widget _buildTransactionList(List<Transaction> txList) {
+    final displayList = txList.take(5).toList();
     return ListView.builder(
       shrinkWrap: true,
       physics: NeverScrollableScrollPhysics(),
-      itemCount: txList.length,
+      itemCount: displayList.length,
       itemBuilder: (context, index) {
-        final tx = txList[index];
+        final tx = displayList[index];
         return ListTile(
           leading: Icon(
             tx.isIncome ? Icons.arrow_downward : Icons.arrow_upward,
@@ -143,20 +223,39 @@ class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
   Future<void> _exportPdf() async {
     setState(() => _isLoading = true);
     try {
+      final exportTransactions = _getEffectiveExportTransactions();
+      final usingFallback = _isUsingFallbackAllTransactions();
+      if (exportTransactions.isEmpty) {
+        throw Exception('Không có dữ liệu giao dịch để xuất báo cáo.');
+      }
+
       final pdfData = await ReportGenerator.generatePdfReport(
-        transactions: widget.transactions,
-        totalIncome: widget.totalIncome,
-        totalExpense: widget.totalExpense,
-        balance: widget.balance,
+        transactions: exportTransactions,
+        totalIncome: _incomeOf(exportTransactions),
+        totalExpense: _expenseOf(exportTransactions),
+        balance: _incomeOf(exportTransactions) - _expenseOf(exportTransactions),
         month: widget.month,
         year: widget.year,
       );
 
-      _downloadFile(pdfData, 'bao_cao_${widget.month}_${widget.year}.pdf');
+      final savedPath = await exportReportFile(
+        pdfData,
+        'bao_cao_${widget.month}_${widget.year}.pdf',
+      );
+
+      if (!mounted) {
+        return;
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('PDF đã được tải xuống'),
+          content: Text(
+            usingFallback
+                ? 'Không có dữ liệu tháng hiện tại, đã xuất toàn bộ giao dịch: ${savedPath ?? 'PDF đã được tải xuống'}'
+                : (savedPath == null
+                    ? 'PDF đã được tải xuống'
+                    : 'PDF đã lưu tại: $savedPath'),
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -175,14 +274,33 @@ class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
   Future<void> _exportCsv() async {
     setState(() => _isLoading = true);
     try {
-      final csvData = ReportGenerator.generateCsvReport(widget.transactions);
+      final exportTransactions = _getEffectiveExportTransactions();
+      final usingFallback = _isUsingFallbackAllTransactions();
+      if (exportTransactions.isEmpty) {
+        throw Exception('Không có dữ liệu giao dịch để xuất báo cáo.');
+      }
+
+      final csvData = ReportGenerator.generateCsvReport(exportTransactions);
       final bytes = Uint8List.fromList(csvData.codeUnits);
 
-      _downloadFile(bytes, 'bao_cao_${widget.month}_${widget.year}.csv');
+      final savedPath = await exportReportFile(
+        bytes,
+        'bao_cao_${widget.month}_${widget.year}.csv',
+      );
+
+      if (!mounted) {
+        return;
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('CSV đã được tải xuống'),
+          content: Text(
+            usingFallback
+                ? 'Không có dữ liệu tháng hiện tại, đã xuất toàn bộ giao dịch: ${savedPath ?? 'CSV đã được tải xuống'}'
+                : (savedPath == null
+                    ? 'CSV đã được tải xuống'
+                    : 'CSV đã lưu tại: $savedPath'),
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -195,25 +313,6 @@ class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
       );
     } finally {
       setState(() => _isLoading = false);
-    }
-  }
-
-  void _downloadFile(Uint8List bytes, String filename) {
-    // This is a placeholder for web/desktop download
-    // For actual implementation, use platform-specific code
-    try {
-      final blob = html.Blob([bytes]);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final link = html.document.createElement('a') as html.AnchorElement
-        ..href = url
-        ..style.display = 'none'
-        ..download = filename;
-      html.document.body!.children.add(link);
-      link.click();
-      html.document.body!.children.remove(link);
-      html.Url.revokeObjectUrl(url);
-    } catch (e) {
-      print('Download error: $e');
     }
   }
 
@@ -235,6 +334,7 @@ class _SummaryCard extends StatelessWidget {
   final double totalIncome;
   final double totalExpense;
   final double balance;
+  final bool showAllMonths;
 
   const _SummaryCard({
     required this.month,
@@ -242,6 +342,7 @@ class _SummaryCard extends StatelessWidget {
     required this.totalIncome,
     required this.totalExpense,
     required this.balance,
+    this.showAllMonths = false,
   });
 
   @override

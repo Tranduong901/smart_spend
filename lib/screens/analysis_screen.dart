@@ -1,18 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_spend/models/transaction.dart';
 import 'package:smart_spend/providers/expense_provider.dart';
 import 'package:smart_spend/widgets/category_breakdown.dart';
 import 'package:smart_spend/widgets/dashboard_overview.dart';
 import 'package:smart_spend/widgets/expense_pie_chart.dart';
+import 'package:smart_spend/widgets/report_preview.dart';
 import 'package:smart_spend/widgets/trend_chart.dart';
 
-class AnalysisScreen extends StatelessWidget {
+enum _AnalysisSection { overview, trend, report }
+
+class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({super.key});
+
+  @override
+  State<AnalysisScreen> createState() => _AnalysisScreenState();
+}
+
+class _AnalysisScreenState extends State<AnalysisScreen> {
+  _AnalysisSection _selectedSection = _AnalysisSection.overview;
 
   @override
   Widget build(BuildContext context) {
     final transactions = context.watch<ExpenseProvider>().transactions;
     final now = DateTime.now();
+
     final currentMonthTransactions = transactions
         .where((tx) => tx.date.year == now.year && tx.date.month == now.month)
         .toList();
@@ -29,6 +41,9 @@ class AnalysisScreen extends StatelessWidget {
     final currentExpense = currentMonthTransactions
         .where((tx) => !tx.isIncome)
         .fold<double>(0, (sum, tx) => sum + tx.amount);
+    final currentIncome = currentMonthTransactions
+        .where((tx) => tx.isIncome)
+        .fold<double>(0, (sum, tx) => sum + tx.amount);
     final previousExpense = previousMonthTransactions
         .where((tx) => !tx.isIncome)
         .fold<double>(0, (sum, tx) => sum + tx.amount);
@@ -39,49 +54,128 @@ class AnalysisScreen extends StatelessWidget {
     );
 
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ExpenseChangeCard(
-            currentExpense: currentExpense,
-            previousExpense: previousExpense,
-            changePercent: changePercent,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              'Phân tích tài chính',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Dashboard tổng quan',
-            style: Theme.of(context).textTheme.titleMedium,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedButton<_AnalysisSection>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment<_AnalysisSection>(
+                  value: _AnalysisSection.overview,
+                  icon: Icon(Icons.dashboard_outlined),
+                  label: Text('Tổng quan'),
+                ),
+                ButtonSegment<_AnalysisSection>(
+                  value: _AnalysisSection.trend,
+                  icon: Icon(Icons.show_chart_outlined),
+                  label: Text('Xu hướng'),
+                ),
+                ButtonSegment<_AnalysisSection>(
+                  value: _AnalysisSection.report,
+                  icon: Icon(Icons.description_outlined),
+                  label: Text('Báo cáo'),
+                ),
+              ],
+              selected: {_selectedSection},
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _selectedSection = selection.first;
+                });
+              },
+            ),
           ),
           const SizedBox(height: 8),
-          DashboardOverviewWidget(
-            transactions: transactions,
-            month: now.month,
-            year: now.year,
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: _buildSectionContent(
+                transactions: transactions,
+                currentMonthTransactions: currentMonthTransactions,
+                month: now.month,
+                year: now.year,
+                currentIncome: currentIncome,
+                currentExpense: currentExpense,
+                previousExpense: previousExpense,
+                changePercent: changePercent,
+              ),
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Xu hướng thu/chi',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          TrendChartWidget(transactions: transactions),
-          const SizedBox(height: 16),
-          Text(
-            'Phân bố chi tiêu tháng này',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          ExpensePieChart(transactions: currentMonthTransactions),
-          const SizedBox(height: 16),
-          Text(
-            'Chi tiết theo danh mục',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          CategoryBreakdown(transactions: currentMonthTransactions),
         ],
       ),
     );
+  }
+
+  Widget _buildSectionContent({
+    required List<Transaction> transactions,
+    required List<Transaction> currentMonthTransactions,
+    required int month,
+    required int year,
+    required double currentIncome,
+    required double currentExpense,
+    required double previousExpense,
+    required double changePercent,
+  }) {
+    switch (_selectedSection) {
+      case _AnalysisSection.overview:
+        return ListView(
+          key: const ValueKey<String>('overview'),
+          padding: const EdgeInsets.all(16),
+          children: [
+            _ExpenseChangeCard(
+              currentExpense: currentExpense,
+              previousExpense: previousExpense,
+              changePercent: changePercent,
+            ),
+            const SizedBox(height: 16),
+            DashboardOverviewWidget(
+              transactions: transactions,
+              month: month,
+              year: year,
+            ),
+            const SizedBox(height: 16),
+            ExpensePieChart(transactions: currentMonthTransactions),
+            const SizedBox(height: 16),
+            CategoryBreakdown(transactions: currentMonthTransactions),
+          ],
+        );
+
+      case _AnalysisSection.trend:
+        return ListView(
+          key: const ValueKey<String>('trend'),
+          padding: const EdgeInsets.all(16),
+          children: [
+            TrendChartWidget(transactions: transactions),
+          ],
+        );
+
+      case _AnalysisSection.report:
+        return ListView(
+          key: const ValueKey<String>('report'),
+          padding: const EdgeInsets.all(16),
+          children: [
+            Card(
+              child: ReportPreviewWidget(
+                transactions: currentMonthTransactions,
+                allTransactions: transactions,
+                month: month,
+                year: year,
+                totalIncome: currentIncome,
+                totalExpense: currentExpense,
+                balance: currentIncome - currentExpense,
+              ),
+            ),
+          ],
+        );
+    }
   }
 
   double _calculateChangePercent({
