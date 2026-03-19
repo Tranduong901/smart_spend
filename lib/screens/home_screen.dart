@@ -110,6 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const SizedBox(height: 0),
           BalanceCard(
             totalBalance: expenseProvider.calculateTotalBalance(),
             startingBalance: expenseProvider.startingBalance,

@@ -12,6 +12,8 @@ class LocalRepository {
   static const String categoriesIncomeBoxName = 'categories_income_box';
   static const String preferencesBoxName = 'preferences_box';
   static const String startingBalanceKey = 'starting_balance';
+  static const String limitsKey = 'limits';
+  static const String monthlyBudgetKey = 'monthly_budget_limit';
 
   Box<Transaction> get _transactionsBox =>
       Hive.box<Transaction>(transactionsBoxName);
@@ -113,5 +115,31 @@ class LocalRepository {
 
   Future<void> saveStartingBalance(double balance) async {
     await _preferencesBox.put(startingBalanceKey, balance);
+  }
+
+  // Limits (tags) management
+  Future<List<Map<String, dynamic>>> getLimits() async {
+    final raw =
+        _preferencesBox.get(limitsKey, defaultValue: <Map<String, dynamic>>[]);
+    if (raw is List) {
+      return raw
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  Future<void> saveLimits(List<Map<String, dynamic>> limits) async {
+    await _preferencesBox.put(limitsKey, limits);
+  }
+
+  Future<double> getMonthlyBudgetLimit() async {
+    return (_preferencesBox.get(monthlyBudgetKey, defaultValue: 8000000.0)
+            as num)
+        .toDouble();
+  }
+
+  Future<void> saveMonthlyBudgetLimit(double value) async {
+    await _preferencesBox.put(monthlyBudgetKey, value);
   }
 }

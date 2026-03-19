@@ -11,6 +11,7 @@ import 'package:smart_spend/repositories/local_repository.dart';
 import 'package:smart_spend/screens/add_transaction_screen.dart';
 import 'package:smart_spend/screens/analysis_screen.dart';
 import 'package:smart_spend/screens/home_screen.dart';
+import 'package:smart_spend/screens/limits_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,7 +42,10 @@ Future<void> main() async {
             localRepository: localRepository,
             initialTransactions: initialTransactions,
             initialStartingBalance: initialStartingBalance,
-          )..loadCategories(),
+          )
+            ..loadCategories()
+            ..loadLimits()
+            ..loadMonthlyBudgetLimit(),
         ),
       ],
       child: const SmartSpendApp(),
@@ -74,6 +78,7 @@ class _SmartSpendAppState extends State<SmartSpendApp> {
   Widget build(BuildContext context) {
     final screens = [
       const HomeScreen(),
+      const LimitsScreen(),
       const AnalysisScreen(),
     ];
 
@@ -102,6 +107,22 @@ class _SmartSpendAppState extends State<SmartSpendApp> {
         brightness: Brightness.dark,
       ),
       home: Scaffold(
+        appBar: AppBar(
+          backgroundColor: const Color.fromARGB(255, 244, 231, 246),
+          leading: Icon(
+            Icons.home,
+            color: Colors.purple.shade800,
+          ),
+          centerTitle: true,
+          title: Text(
+            'Quản lý chi tiêu',
+            style: TextStyle(
+              color: Colors.purple.shade800,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+        ),
         body: IndexedStack(index: _currentIndex, children: screens),
         floatingActionButton: FloatingActionButton(
           onPressed: _openAddTransactionPage,
@@ -120,6 +141,11 @@ class _SmartSpendAppState extends State<SmartSpendApp> {
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home),
               label: 'Trang chủ',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.flag_outlined),
+              selectedIcon: Icon(Icons.flag),
+              label: 'Hạn mức',
             ),
             NavigationDestination(
               icon: Icon(Icons.analytics_outlined),
