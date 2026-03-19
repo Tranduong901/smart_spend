@@ -6,7 +6,12 @@ import 'package:smart_spend/widgets/dynamic_category_selector.dart';
 import 'package:smart_spend/widgets/receipt_capture_button.dart';
 
 class AddTransactionScreen extends StatefulWidget {
-  const AddTransactionScreen({super.key});
+  const AddTransactionScreen({
+    super.key,
+    this.transaction,
+  });
+
+  final Transaction? transaction;
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -26,15 +31,31 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   void initState() {
     super.initState();
+    // Set default date to today
+    _selectedDate = DateTime.now();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
       final provider = context.read<ExpenseProvider>();
-      final defaultCategory = _defaultCategoryName(provider, _isIncome);
-      setState(() {
-        _selectedCategoryName = defaultCategory;
-      });
+
+      // If editing, load transaction data
+      if (widget.transaction != null) {
+        final tx = widget.transaction!;
+        _titleController.text = tx.title;
+        _amountController.text = tx.amount.toStringAsFixed(0);
+        _noteController.text = tx.note;
+        _selectedDate = tx.date;
+        _isIncome = tx.isIncome;
+        _selectedCategoryName = tx.categoryName;
+        _receiptPath = tx.imagePath;
+      } else {
+        // New transaction - default category
+        _selectedCategoryName = _defaultCategoryName(provider, _isIncome);
+      }
+
+      setState(() {});
     });
   }
 
@@ -82,13 +103,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       return;
     }
 
-    if (_selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng chọn ngày giao dịch.')),
-      );
-      return;
-    }
-
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(
@@ -98,22 +112,29 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
 
     try {
-      await context.read<ExpenseProvider>().addTransaction(
-            Transaction(
-              id: DateTime.now().microsecondsSinceEpoch.toString(),
-              title: _titleController.text.trim().isEmpty
-                  ? _selectedCategoryName
-                  : _titleController.text.trim(),
-              amount: amount,
-              date: _selectedDate!,
-              categoryName: _selectedCategoryName,
-              note: _noteController.text.trim().isEmpty
-                  ? 'Không có ghi chú'
-                  : _noteController.text.trim(),
-              imagePath: _receiptPath,
-              isIncome: _isIncome,
-            ),
-          );
+      final isEditing = widget.transaction != null;
+      final newTransaction = Transaction(
+        id: isEditing
+            ? widget.transaction!.id
+            : DateTime.now().microsecondsSinceEpoch.toString(),
+        title: _titleController.text.trim().isEmpty
+            ? _selectedCategoryName
+            : _titleController.text.trim(),
+        amount: amount,
+        date: _selectedDate!,
+        categoryName: _selectedCategoryName,
+        note: _noteController.text.trim().isEmpty
+            ? 'Không có ghi chú'
+            : _noteController.text.trim(),
+        imagePath: _receiptPath,
+        isIncome: _isIncome,
+      );
+
+      if (isEditing) {
+        await context.read<ExpenseProvider>().updateTransaction(newTransaction);
+      } else {
+        await context.read<ExpenseProvider>().addTransaction(newTransaction);
+      }
     } catch (_) {
       if (!mounted) {
         return;
@@ -127,27 +148,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       return;
     }
 
-    _formKey.currentState!.reset();
-    _amountController.clear();
-    _titleController.clear();
-    _noteController.clear();
-
     if (!mounted) {
       return;
     }
 
-    setState(() {
-      _selectedDate = null;
-      _isIncome = false;
-      _selectedCategoryName = _defaultCategoryName(
-        context.read<ExpenseProvider>(),
-        _isIncome,
-      );
-      _receiptPath = null;
-    });
+    Navigator.pop(context);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã thêm giao dịch thành công.')),
+      SnackBar(
+        content: Text(
+          widget.transaction != null
+              ? 'Đã cập nhật giao dịch thành công.'
+              : 'Đã thêm giao dịch thành công.',
+        ),
+      ),
     );
   }
 
@@ -157,6 +171,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         ? 'Chưa chọn ngày'
         : '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}';
 
+    final isEditing = widget.transaction != null;
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -165,9 +181,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Thêm giao dịch',
-                style: Theme.of(context).textTheme.headlineSmall,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      isEditing ? 'Sửa giao dịch' : 'Thêm giao dịch',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ),
+                  if (isEditing)
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                ],
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -257,24 +284,32 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 isIncome: _isIncome,
               ),
               const SizedBox(height: 16),
-              ReceiptCaptureButton(
-                hasReceipt: _receiptPath != null,
-                onCapture: () {
-                  setState(() {
-                    _receiptPath = 'mock_receipt_path.jpg';
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Đã gắn ảnh hóa đơn mẫu.')),
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
+              if (!_isIncome)
+                ReceiptCaptureButton(
+                  hasReceipt: _receiptPath != null,
+                  onCapture: () {
+                    setState(() {
+                      _receiptPath = 'mock_receipt_path.jpg';
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Đã gắn ảnh hóa đơn mẫu.')),
+                    );
+                  },
+                ),
+              if (!_isIncome) const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
                   onPressed: _save,
-                  icon: const Icon(Icons.save_outlined),
-                  label: Text(_isIncome ? 'Lưu thu nhập' : 'Lưu chi tiêu'),
+                  icon: Icon(
+                      isEditing ? Icons.edit_outlined : Icons.save_outlined),
+                  label: Text(
+                    isEditing
+                        ? (_isIncome
+                            ? 'Cập nhật thu nhập'
+                            : 'Cập nhật chi tiêu')
+                        : (_isIncome ? 'Lưu thu nhập' : 'Lưu chi tiêu'),
+                  ),
                 ),
               ),
             ],

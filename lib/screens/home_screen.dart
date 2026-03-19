@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_spend/models/transaction.dart';
 import 'package:smart_spend/providers/expense_provider.dart';
+import 'package:smart_spend/screens/add_transaction_screen.dart';
 import 'package:smart_spend/widgets/balance_card.dart';
 import 'package:smart_spend/widgets/history_filter_bar.dart';
 import 'package:smart_spend/widgets/transaction_tile.dart';
@@ -63,6 +65,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     await provider.setStartingBalance(result);
+  }
+
+  void _openEditTransaction(Transaction transaction) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+          body: AddTransactionScreen(transaction: transaction),
+        ),
+      ),
+    );
   }
 
   @override
@@ -159,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: TransactionTile(
                   transaction: transaction,
                   showDelete: true,
+                  onEdit: () => _openEditTransaction(transaction),
                 ),
               ),
             ),

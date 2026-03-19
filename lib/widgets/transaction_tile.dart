@@ -8,10 +8,12 @@ class TransactionTile extends StatelessWidget {
     super.key,
     required this.transaction,
     this.showDelete = false,
+    this.onEdit,
   });
 
   final Transaction transaction;
   final bool showDelete;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +59,12 @@ class TransactionTile extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
               ),
+              if (onEdit != null)
+                IconButton(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Sửa giao dịch',
+                ),
               if (showDelete)
                 IconButton(
                   onPressed: () async {
