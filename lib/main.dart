@@ -13,6 +13,189 @@ import 'package:smart_spend/screens/analysis_screen.dart';
 import 'package:smart_spend/screens/home_screen.dart';
 import 'package:smart_spend/screens/limits_screen.dart';
 
+Future<void> _seedDemoTransactionsIfNeeded(
+    LocalRepository localRepository) async {
+  final existing = await localRepository.readTransactions();
+  final existingIds = existing.map((tx) => tx.id).toSet();
+
+  final now = DateTime.now();
+  final demoTransactions = <Transaction>[
+    Transaction(
+      id: 'demo_01',
+      title: 'Lương tháng',
+      amount: 18000000,
+      categoryName: 'Lương',
+      date: DateTime(now.year, now.month, 1),
+      note: 'Lương cố định',
+      isIncome: true,
+    ),
+    Transaction(
+      id: 'demo_02',
+      title: 'Ăn trưa văn phòng',
+      amount: 55000,
+      categoryName: 'Ăn uống',
+      date: DateTime(now.year, now.month, 2),
+      note: 'Cơm trưa',
+    ),
+    Transaction(
+      id: 'demo_03',
+      title: 'Đổ xăng',
+      amount: 120000,
+      categoryName: 'Di chuyển',
+      date: DateTime(now.year, now.month, 3),
+      note: 'Xăng xe tuần 1',
+    ),
+    Transaction(
+      id: 'demo_04',
+      title: 'Cafe gặp khách hàng',
+      amount: 90000,
+      categoryName: 'Ăn uống',
+      date: DateTime(now.year, now.month, 4),
+      note: 'Tiếp khách',
+    ),
+    Transaction(
+      id: 'demo_05',
+      title: 'Mua sách chuyên môn',
+      amount: 280000,
+      categoryName: 'Giáo dục',
+      date: DateTime(now.year, now.month, 6),
+      note: 'Sách Flutter',
+    ),
+    Transaction(
+      id: 'demo_06',
+      title: 'Freelance UI',
+      amount: 3500000,
+      categoryName: 'Freelance',
+      date: DateTime(now.year, now.month, 7),
+      note: 'Dự án phụ',
+      isIncome: true,
+    ),
+    Transaction(
+      id: 'demo_07',
+      title: 'Siêu thị cuối tuần',
+      amount: 640000,
+      categoryName: 'Mua sắm',
+      date: DateTime(now.year, now.month, 8),
+      note: 'Đồ gia dụng',
+    ),
+    Transaction(
+      id: 'demo_08',
+      title: 'Điện nước',
+      amount: 780000,
+      categoryName: 'Hóa đơn',
+      date: DateTime(now.year, now.month, 10),
+      note: 'Tháng hiện tại',
+    ),
+    Transaction(
+      id: 'demo_09',
+      title: 'Khám sức khỏe định kỳ',
+      amount: 450000,
+      categoryName: 'Y tế',
+      date: DateTime(now.year, now.month, 11),
+      note: 'Bệnh viện quận',
+    ),
+    Transaction(
+      id: 'demo_10',
+      title: 'Thưởng KPI',
+      amount: 2200000,
+      categoryName: 'Thưởng',
+      date: DateTime(now.year, now.month, 12),
+      note: 'Thưởng theo quý',
+      isIncome: true,
+    ),
+    Transaction(
+      id: 'demo_11',
+      title: 'Lương tháng trước',
+      amount: 18000000,
+      categoryName: 'Lương',
+      date: DateTime(now.year, now.month - 1, 1),
+      note: 'Lương cố định',
+      isIncome: true,
+    ),
+    Transaction(
+      id: 'demo_12',
+      title: 'Tiền nhà',
+      amount: 6500000,
+      categoryName: 'Nhà ở',
+      date: DateTime(now.year, now.month - 1, 3),
+      note: 'Thanh toán đầu tháng',
+    ),
+    Transaction(
+      id: 'demo_13',
+      title: 'Ăn tối',
+      amount: 130000,
+      categoryName: 'Ăn uống',
+      date: DateTime(now.year, now.month - 1, 5),
+      note: 'Đi ăn cùng gia đình',
+    ),
+    Transaction(
+      id: 'demo_14',
+      title: 'Mua quần áo',
+      amount: 980000,
+      categoryName: 'Mua sắm',
+      date: DateTime(now.year, now.month - 1, 9),
+      note: 'Khuyến mãi cuối mùa',
+    ),
+    Transaction(
+      id: 'demo_15',
+      title: 'Đăng ký gym',
+      amount: 600000,
+      categoryName: 'Sức khỏe',
+      date: DateTime(now.year, now.month - 1, 14),
+      note: 'Gói 1 tháng',
+    ),
+    Transaction(
+      id: 'demo_16',
+      title: 'Lương 2 tháng trước',
+      amount: 17500000,
+      categoryName: 'Lương',
+      date: DateTime(now.year, now.month - 2, 1),
+      note: 'Lương cố định',
+      isIncome: true,
+    ),
+    Transaction(
+      id: 'demo_17',
+      title: 'Đi lại công tác',
+      amount: 720000,
+      categoryName: 'Di chuyển',
+      date: DateTime(now.year, now.month - 2, 7),
+      note: 'Taxi + gửi xe',
+    ),
+    Transaction(
+      id: 'demo_18',
+      title: 'Du lịch ngắn ngày',
+      amount: 2600000,
+      categoryName: 'Giải trí',
+      date: DateTime(now.year, now.month - 3, 15),
+      note: 'Đi Vũng Tàu',
+    ),
+    Transaction(
+      id: 'demo_19',
+      title: 'Bán đồ cũ',
+      amount: 1200000,
+      categoryName: 'Thu khác',
+      date: DateTime(now.year, now.month - 4, 10),
+      note: 'Thanh lý bàn làm việc',
+      isIncome: true,
+    ),
+    Transaction(
+      id: 'demo_20',
+      title: 'Học online',
+      amount: 499000,
+      categoryName: 'Giáo dục',
+      date: DateTime(now.year, now.month - 5, 20),
+      note: 'Khóa học nâng cao',
+    ),
+  ];
+
+  for (final transaction in demoTransactions) {
+    if (existingIds.contains(transaction.id)) {
+      continue;
+    }
+    await localRepository.createTransaction(transaction);
+  }
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
@@ -31,6 +214,7 @@ Future<void> main() async {
   await Hive.openBox(LocalRepository.preferencesBoxName);
 
   final localRepository = LocalRepository();
+  await _seedDemoTransactionsIfNeeded(localRepository);
   final initialTransactions = await localRepository.readTransactions();
   final initialStartingBalance = await localRepository.getStartingBalance();
 
@@ -85,7 +269,7 @@ class _SmartSpendAppState extends State<SmartSpendApp> {
     return MaterialApp(
       navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
-      title: 'Smart Spend',
+      title: 'Expense Tracker (Quản lý chi tiêu)',
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

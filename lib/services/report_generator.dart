@@ -4,6 +4,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'dart:typed_data';
 import '../models/transaction.dart';
 
+// Note: google_fonts is added to pubspec.yaml for Vietnamese font support in PDFs
+
 /// Service for generating financial reports in PDF and CSV formats
 class ReportGenerator {
   static final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
@@ -22,6 +24,9 @@ class ReportGenerator {
     required int month,
     required int year,
   }) async {
+    // Use Courier font which has better Unicode/Vietnamese support
+    final baseFont = pw.Font.courier();
+
     final pdf = pw.Document();
 
     // Title and summary section
@@ -44,6 +49,12 @@ Số Dư: ${_formatCurrency(balance)}
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
+        theme: pw.ThemeData.withFont(
+          base: baseFont,
+          bold: baseFont,
+          italic: baseFont,
+          boldItalic: baseFont,
+        ),
         build: (context) => [
           pw.Header(
             level: 0,
@@ -52,34 +63,46 @@ Số Dư: ${_formatCurrency(balance)}
               style: pw.TextStyle(
                 fontSize: 24,
                 fontWeight: pw.FontWeight.bold,
+                font: baseFont,
               ),
             ),
           ),
           pw.SizedBox(height: 20),
           pw.Paragraph(
             text: summary,
-            style: pw.TextStyle(fontSize: 12),
+            style: pw.TextStyle(
+              fontSize: 12,
+              font: baseFont,
+            ),
           ),
           pw.SizedBox(height: 20),
           pw.Header(
             level: 1,
             child: pw.Text(
               'Chi Tiết Giao Dịch',
-              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+              style: pw.TextStyle(
+                fontSize: 16,
+                fontWeight: pw.FontWeight.bold,
+                font: baseFont,
+              ),
             ),
           ),
           pw.SizedBox(height: 10),
-          _buildTransactionTable(transactions),
+          _buildTransactionTable(transactions, baseFont),
           pw.SizedBox(height: 20),
           pw.Header(
             level: 1,
             child: pw.Text(
               'Phân Tích Theo Danh Mục',
-              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+              style: pw.TextStyle(
+                fontSize: 16,
+                fontWeight: pw.FontWeight.bold,
+                font: baseFont,
+              ),
             ),
           ),
           pw.SizedBox(height: 10),
-          _buildCategoryBreakdown(byCategory),
+          _buildCategoryBreakdown(byCategory, baseFont),
         ],
       ),
     );
@@ -88,7 +111,10 @@ Số Dư: ${_formatCurrency(balance)}
   }
 
   /// Build a table for transaction details
-  static pw.Widget _buildTransactionTable(List<Transaction> transactions) {
+  static pw.Widget _buildTransactionTable(
+    List<Transaction> transactions,
+    pw.Font font,
+  ) {
     return pw.Table(
       border: pw.TableBorder.all(),
       columnWidths: {
@@ -104,23 +130,43 @@ Số Dư: ${_formatCurrency(balance)}
           children: [
             pw.Padding(
               padding: pw.EdgeInsets.all(8),
-              child: pw.Text('Ngày',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              child: pw.Text(
+                'Ngày',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  font: font,
+                ),
+              ),
             ),
             pw.Padding(
               padding: pw.EdgeInsets.all(8),
-              child: pw.Text('Tiêu Đề',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              child: pw.Text(
+                'Tiêu Đề',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  font: font,
+                ),
+              ),
             ),
             pw.Padding(
               padding: pw.EdgeInsets.all(8),
-              child: pw.Text('Danh Mục',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              child: pw.Text(
+                'Danh Mục',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  font: font,
+                ),
+              ),
             ),
             pw.Padding(
               padding: pw.EdgeInsets.all(8),
-              child: pw.Text('Số Tiền',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              child: pw.Text(
+                'Số Tiền',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  font: font,
+                ),
+              ),
             ),
           ],
         ),
@@ -129,23 +175,30 @@ Số Dư: ${_formatCurrency(balance)}
               children: [
                 pw.Padding(
                   padding: pw.EdgeInsets.all(8),
-                  child: pw.Text(_dateFormat.format(tx.date),
-                      style: pw.TextStyle(fontSize: 10)),
+                  child: pw.Text(
+                    _dateFormat.format(tx.date),
+                    style: pw.TextStyle(fontSize: 10, font: font),
+                  ),
                 ),
                 pw.Padding(
                   padding: pw.EdgeInsets.all(8),
-                  child: pw.Text(tx.title, style: pw.TextStyle(fontSize: 10)),
+                  child: pw.Text(
+                    tx.title,
+                    style: pw.TextStyle(fontSize: 10, font: font),
+                  ),
                 ),
                 pw.Padding(
                   padding: pw.EdgeInsets.all(8),
-                  child: pw.Text(tx.categoryName,
-                      style: pw.TextStyle(fontSize: 10)),
+                  child: pw.Text(
+                    tx.categoryName,
+                    style: pw.TextStyle(fontSize: 10, font: font),
+                  ),
                 ),
                 pw.Padding(
                   padding: pw.EdgeInsets.all(8),
                   child: pw.Text(
                     '${tx.isIncome ? '+' : '-'}${_formatCurrency(tx.amount)}',
-                    style: pw.TextStyle(fontSize: 10),
+                    style: pw.TextStyle(fontSize: 10, font: font),
                   ),
                 ),
               ],
@@ -156,20 +209,25 @@ Số Dư: ${_formatCurrency(balance)}
 
   /// Build a breakdown widget by category
   static pw.Widget _buildCategoryBreakdown(
-      Map<String, List<Transaction>> byCategory) {
+    Map<String, List<Transaction>> byCategory,
+    pw.Font font,
+  ) {
     final rows = byCategory.entries.map((entry) {
       double total = entry.value.fold(0, (sum, tx) => sum + tx.amount);
       return pw.TableRow(
         children: [
           pw.Padding(
             padding: pw.EdgeInsets.all(8),
-            child: pw.Text(entry.key, style: pw.TextStyle(fontSize: 11)),
+            child: pw.Text(
+              entry.key,
+              style: pw.TextStyle(fontSize: 11, font: font),
+            ),
           ),
           pw.Padding(
             padding: pw.EdgeInsets.all(8),
             child: pw.Text(
               _formatCurrency(total),
-              style: pw.TextStyle(fontSize: 11),
+              style: pw.TextStyle(fontSize: 11, font: font),
             ),
           ),
         ],
@@ -188,13 +246,23 @@ Số Dư: ${_formatCurrency(balance)}
           children: [
             pw.Padding(
               padding: pw.EdgeInsets.all(8),
-              child: pw.Text('Danh Mục',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              child: pw.Text(
+                'Danh Mục',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  font: font,
+                ),
+              ),
             ),
             pw.Padding(
               padding: pw.EdgeInsets.all(8),
-              child: pw.Text('Tổng Tiền',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              child: pw.Text(
+                'Tổng Tiền',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  font: font,
+                ),
+              ),
             ),
           ],
         ),

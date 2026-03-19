@@ -2,7 +2,7 @@
 
 ## 👋 Chào Mừng!
 
-Cảm ơn bạn muốn đóng góp cho **Smart Spend**! Tài liệu này hướng dẫn quy trình góp code, báo bug, và cải thiện dự án.
+Cảm ơn bạn muốn đóng góp cho **Expense Tracker (Quản lý chi tiêu)**! Tài liệu này hướng dẫn quy trình góp code, báo bug, và cải thiện dự án.
 
 ## 🐛 Báo Lỗi (Bug Reports)
 

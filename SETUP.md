@@ -1,4 +1,4 @@
-# 📱 Smart Spend - Hướng Dẫn Cài Đặt
+# 📱 Expense Tracker (Quản lý chi tiêu) - Hướng Dẫn Cài Đặt
 
 ## 🎯 Yêu Cầu Hệ Thống
 

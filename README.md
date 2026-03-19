@@ -1,4 +1,4 @@
-# Smart Spend 💰
+# Expense Tracker (Quản lý chi tiêu) 💰
 
 Ứng dụng quản lý chi tiêu cá nhân được xây dựng với Flutter. Theo dõi thu nhập, chi tiêu, phân tích xu hướng chi tiêu và quản lý ngân sách của bạn một cách dễ dàng.
 

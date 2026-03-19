@@ -1,4 +1,4 @@
-# 🏗️ Architecture - Smart Spend
+# 🏗️ Architecture - Expense Tracker (Quản lý chi tiêu)
 
 ## 📐 High-Level Architecture
 
@@ -517,4 +517,4 @@ Consumer<ExpenseProvider>(
 
 ---
 
-**This architecture enables easy testing, maintenance, and scaling of the Smart Spend application.**
+**This architecture enables easy testing, maintenance, and scaling of the Expense Tracker (Quản lý chi tiêu) application.**

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
+import 'package:open_filex/open_filex.dart';
 import '../models/transaction.dart';
 import '../services/file_export_helper.dart';
 import '../services/report_generator.dart';
@@ -30,7 +31,7 @@ class ReportPreviewWidget extends StatefulWidget {
 }
 
 class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
-  bool _isLoading = false;
+  _ExportType? _activeExport;
   bool _exportAllMonths = false;
 
   List<Transaction> _getEffectiveExportTransactions() {
@@ -151,24 +152,42 @@ class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
               ),
               SizedBox(height: 16),
               ElevatedButton.icon(
-                onPressed: _isLoading ? null : _exportPdf,
-                icon: Icon(Icons.picture_as_pdf),
-                label: Text('Xuất PDF'),
+                onPressed: () => _runExport(_ExportType.pdf),
+                icon: _activeExport == _ExportType.pdf
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.picture_as_pdf),
+                label: Text(
+                  _activeExport == _ExportType.pdf
+                      ? 'Đang xuất PDF...'
+                      : 'Xuất PDF',
+                ),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 12),
                   backgroundColor: Colors.red.shade600,
-                  disabledBackgroundColor: Colors.grey.shade300,
                 ),
               ),
               SizedBox(height: 12),
               ElevatedButton.icon(
-                onPressed: _isLoading ? null : _exportCsv,
-                icon: Icon(Icons.table_chart),
-                label: Text('Xuất CSV'),
+                onPressed: () => _runExport(_ExportType.csv),
+                icon: _activeExport == _ExportType.csv
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.table_chart),
+                label: Text(
+                  _activeExport == _ExportType.csv
+                      ? 'Đang xuất CSV...'
+                      : 'Xuất CSV',
+                ),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 12),
                   backgroundColor: Colors.green.shade600,
-                  disabledBackgroundColor: Colors.grey.shade300,
                 ),
               ),
             ],
@@ -220,8 +239,27 @@ class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
     );
   }
 
+  Future<void> _runExport(_ExportType type) async {
+    if (_activeExport != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('Đang xử lý xuất file, vui lòng đợi xong tác vụ hiện tại.'),
+        ),
+      );
+      return;
+    }
+
+    if (type == _ExportType.pdf) {
+      await _exportPdf();
+      return;
+    }
+
+    await _exportCsv();
+  }
+
   Future<void> _exportPdf() async {
-    setState(() => _isLoading = true);
+    setState(() => _activeExport = _ExportType.pdf);
     try {
       final exportTransactions = _getEffectiveExportTransactions();
       final usingFallback = _isUsingFallbackAllTransactions();
@@ -247,6 +285,16 @@ class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
         return;
       }
 
+      // Attempt to open the file automatically
+      if (savedPath != null) {
+        try {
+          await OpenFilex.open(savedPath);
+        } catch (e) {
+          // If opening fails, just show the saved path message
+          if (!mounted) return;
+        }
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -267,12 +315,14 @@ class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
         ),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _activeExport = null);
+      }
     }
   }
 
   Future<void> _exportCsv() async {
-    setState(() => _isLoading = true);
+    setState(() => _activeExport = _ExportType.csv);
     try {
       final exportTransactions = _getEffectiveExportTransactions();
       final usingFallback = _isUsingFallbackAllTransactions();
@@ -290,6 +340,16 @@ class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
 
       if (!mounted) {
         return;
+      }
+
+      // Attempt to open the file automatically
+      if (savedPath != null) {
+        try {
+          await OpenFilex.open(savedPath);
+        } catch (e) {
+          // If opening fails, just show the saved path message
+          if (!mounted) return;
+        }
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -312,7 +372,9 @@ class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
         ),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _activeExport = null);
+      }
     }
   }
 
@@ -327,6 +389,8 @@ class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
     return '$withDots ₫';
   }
 }
+
+enum _ExportType { pdf, csv }
 
 class _SummaryCard extends StatelessWidget {
   final int month;
