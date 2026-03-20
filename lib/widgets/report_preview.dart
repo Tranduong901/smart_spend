@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import '../models/transaction.dart';
 import '../services/file_export_helper.dart';
 import '../services/report_generator.dart';
+import 'package:open_filex/open_filex.dart';
 
 /// Widget for previewing and exporting reports
 class ReportPreviewWidget extends StatefulWidget {
@@ -245,6 +246,16 @@ class _ReportPreviewWidgetState extends State<ReportPreviewWidget> {
 
       if (!mounted) {
         return;
+      }
+
+      // ⭐ Mở file PDF tự động nếu save thành công
+      if (savedPath != null && savedPath.isNotEmpty) {
+        try {
+          await OpenFilex.open(savedPath);
+        } catch (e) {
+          print('Lỗi mở file: $e');
+          // Nếu không mở được, vẫn hiển thị notification
+        }
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
