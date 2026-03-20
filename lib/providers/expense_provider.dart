@@ -41,9 +41,6 @@ class ExpenseProvider extends ChangeNotifier {
     final savedTransaction =
         await _localRepository.createTransaction(transaction);
     _transactions.insert(0, savedTransaction);
-    if (savedTransaction.isIncome) {
-      await addLimit(savedTransaction.title);
-    }
     notifyListeners();
   }
 
